@@ -9,8 +9,12 @@
  *    - Fiji Life-Line version, 2013 July 15 (from http://fiji.sc/Downloads )
  *	  - ThunderSTORM dev-2015-10-03-b1
  *
- *	This version does: 			ND2 and TIF stack processing (possibly LIF as well, but not tested), post-processing file arrangement, saves tables and preview images for each step (allevents, filtered, filt+drift corrected, filt+drift+merging)
- *	This version does not do:	channel warping/alignment, reprocessing of existing tables, loading of existing drift files.
+ *	This version does: 			ND2 and TIF stack processing (possibly LIF as well, but not tested)
+ * 								post-processing file arrangement
+ * 								saves tables and preview images for each step (allevents, filtered, filt+drift corrected, filt+drift+merging)
+ * 								reprocesses files from previous batch-processing.
+ * 								
+ *	This version does not do:	channel warping/alignment, loading of existing drift files.
  * 
  *	Change settings in the sections headed 'General Variables' and 'ThunderSTORM Variables'
  * 
@@ -36,10 +40,11 @@ CameraPerf = newArray(12);
  *========================================================================================================================
  */
 
-InputFileExt = 			".nd2";				// File extension of the input data files
-OutputFolderName = 		"Proc";			// Name of folder that will be created to hold output data tables etc.
-OutputFolderAppendUID = 	"datestamp";				// Will add a unique ID to the end of the folder name given above (e.g. to avoid overwriting existing data). Use either "random" or "datestamp".
-OrganiseOutputFiles = 		false;					// Protocols, preview images, and drift plots will be stored their own folders
+InputFileExt = 				".nd2";			// File extension of the input data files. To reprocess data from a previous batch-proc, set this to the file extension that you exported the data.
+OutputFolderName = 			"Proc";			// Name of folder that will be created to hold output data tables etc.
+OutputFolderAppendUID = 	"datestamp";	// Will add a unique ID to the end of the folder name given above (e.g. to avoid overwriting existing data). Use either "random" or "datestamp".
+OrganiseOutputFiles = 		false;			// Protocols, preview images, and drift plots will be stored in their own folders. This can make the output a bit neater and easier to manage but see note below...
+											// NOTE: If you want to do reprocessing then you will need to copy/move the protocol files into the same folder as the exported data files. Or set this to false when you do the initial procesing.
 
 
 /*========================================================================================================================
@@ -49,21 +54,21 @@ OrganiseOutputFiles = 		false;					// Protocols, preview images, and drift plots
 
 // Image Filtering
 AnalysisParams[0] = 		"Wavelet filter (B-Spline)";	// filter type
-AnalysisParams[1] = 		"2.0";				// B-spline scale
-AnalysisParams[2] = 		"3";					// B-spline order
+AnalysisParams[1] = 		"2.0";							// B-spline scale
+AnalysisParams[2] = 		"3";							// B-spline order
 
 // Approximate localisation of molecules
 AnalysisParams[3] = 		"Non-maximum suppression";	// Approximate detection method: Non-maximum suppression, Local Maximum, Centroid of connected components
-AnalysisParams[5] = 		"std(Wave.F1)";			// Intensity threshold
-AnalysisParams[17] = 		"1";					// dilation radius (Non-maximum Suppression)	
-AnalysisParams[4] = 		"8-neighbourhood";		// Connectivity (Local Maximum)
-AnalysisParams[28] = 		"true";				// WatershedSegmentation true/false (Centroid of connected components)
+AnalysisParams[5] = 		"std(Wave.F1)";				// Intensity threshold
+AnalysisParams[17] = 		"1";						// dilation radius (Non-maximum Suppression)	
+AnalysisParams[4] = 		"8-neighbourhood";			// Connectivity (Local Maximum)
+AnalysisParams[28] = 		"true";						// WatershedSegmentation true/false (Centroid of connected components)
 
 // Sub-pixel localisation
 AnalysisParams[6] = 		"PSF: Integrated Gaussian";	// Sub-pixel localisation estimator
-AnalysisParams[9] = 		"3";					// Fitting radius
-AnalysisParams[8] = 		"Maximum likelihood";			// Fitting method
-AnalysisParams[7] = 		"1.6";				// Initial sigma (px)
+AnalysisParams[9] = 		"3";						// Fitting radius
+AnalysisParams[8] = 		"Maximum likelihood";		// Fitting method
+AnalysisParams[7] = 		"1.6";						// Initial sigma (px)
 
 // Multi-emitter fitting
 AnalysisParams[10] = 		"false";				// multi-emitter fiting enabled?
@@ -78,13 +83,13 @@ AnalysisParams[19] = 		"500:2500";				// Intensity range (photons) if above is t
 // Leave this off ("No Renderer" to disable preview rendering and speed things up
 //  A preview of each image is saved at the end of the detection.
 AnalysisParams[11] = 		"No Renderer";			// Change to a render type if you really want to see a progress image during the detection phase.
-AnalysisParams[12] = 		"5.0";				// magnification
-AnalysisParams[13] = 		"true";				// colorize z-values
+AnalysisParams[12] = 		"5.0";					// magnification
+AnalysisParams[13] = 		"true";					// colorize z-values
 AnalysisParams[14] = 		"2";					// histogram shifts
-AnalysisParams[15] = 		"5000";				// update frequency (frames)
+AnalysisParams[15] = 		"5000";					// update frequency (frames)
 AnalysisParams[16] = 		"false";				// 3D rendering?
 AnalysisParams[24] = 		"false";				// dxforce
-AnalysisParams[25] = 		"20.0";				// dx
+AnalysisParams[25] = 		"20.0";					// dx
 AnalysisParams[26] = 		"false";				// dzforce
 AnalysisParams[27] = 		"100.0";				// dz
 
@@ -99,27 +104,27 @@ CameraParams[0] = 		"true";				// (isEmGain=) Did you use camera gain? This is u
 
 // EMCCD Camera Performance
 // Metadata keywords - Explore the metadata by opening an image and pressing 'i' for Image Info. Scroll until you find the values you need.
-// Generally these phrases are stable unless your provider does some major software restructuring. For NIS Elements, this could be a great and happy day.
+// Generally these phrases are stable unless your provider does some major software restructuring.
 MetaDataWord_Gain = 		"GainMultiplier";		// The phrase used to identify camera gain (200 to 300 usually)
 MetaDataWord_PixelSize = 	"dCalibration";			// Pixel size, in um per pixel (usually around 160 nm per pixel or 100 nm per pixel)
-MetaDataWord_Readout = 	"Readout Speed";		// Should be 17 MHz
+MetaDataWord_Readout = 		"Readout Speed";		// Should be 17 MHz
 MetaDataWord_PreAmp = 		"Conversion Gain";		// Internal conversion gain setting (1, 2, or 3)
 
 // 17 Mhz Readout Rate
-CameraPerf[0] =			"99.74";				// PreAmp Gain 3 Noise
+CameraPerf[0] =			"99.74";			// PreAmp Gain 3 Noise
 CameraPerf[1] =			"5.32";				// PreAmp Gain 3 Sensitivity
-CameraPerf[2] =			"162.88";				// PreAmp Gain 2 Noise
+CameraPerf[2] =			"162.88";			// PreAmp Gain 2 Noise
 CameraPerf[3] =			"9.12";				// PreAmp Gain 2 Sensitivity
-CameraPerf[4] =			"249.62";				// PreAmp Gain 1 Noise
-CameraPerf[5] =			"15.62";				// PreAmp Gain 1 Sensitivity
+CameraPerf[4] =			"249.62";			// PreAmp Gain 1 Noise
+CameraPerf[5] =			"15.62";			// PreAmp Gain 1 Sensitivity
 
 // 10 Mhz Readout Rate
-CameraPerf[6] =			"65.86";				// PreAmp Gain 3 Noise
+CameraPerf[6] =			"65.86";			// PreAmp Gain 3 Noise
 CameraPerf[7] =			"4.84";				// PreAmp Gain 3 Sensitivity
-CameraPerf[8] =			"93.03";				// PreAmp Gain 2 Noise
+CameraPerf[8] =			"93.03";			// PreAmp Gain 2 Noise
 CameraPerf[9] =			"7.87";				// PreAmp Gain 2 Sensitivity
-CameraPerf[10] =			"163.65";				// PreAmp Gain 1 Noise
-CameraPerf[11] =			"15.06";				// PreAmp Gain 1 Sensitivity
+CameraPerf[10] =		"163.65";			// PreAmp Gain 1 Noise
+CameraPerf[11] =		"15.06";			// PreAmp Gain 1 Sensitivity
 
 
 /*========================================================================================================================
@@ -129,10 +134,18 @@ CameraPerf[11] =			"15.06";				// PreAmp Gain 1 Sensitivity
  
 // ORDER OF POST-PROCESSING
 // Must be at least one of these phrases:
-//	 Filter	DensityFilter	RemoveDuplicates	Merging	DriftCorrection	ZStageOffset
+//	 	Filter		DensityFilter		RemoveDuplicates		Merging		DriftCorrection		ZStageOffset
 // If you don't want to do a particular type of post-processing simply don't include it!
 
-PostProcOrder = 	newArray("Filter", "DriftCorrection", "Merging"); // !IMPORTANT! ==> When changing this, make sure you add/remove the matching true-false statements for saving tables and images (below, SavePostProcessedTables and SavePostProcessedPreviewImgs
+PostProcOrder = 	newArray("Filter", "DriftCorrection", "Merging"); 	
+// !IMPORTANT! When changing this, make sure you add/remove a matching true/false statements for
+// saving tables (SavePostProcessedTables) and preview-images (SavePostProcessedPreviewImgs), lines below.
+// e.g. if you have three post-proc steps, then you need three true/false statements. If you have two pp steps you need two such statements
+
+// DATA TABLES & PREVIEW IMAGES
+SavePostProcessedTables  =		newArray(true, true, true);		// Save a data table for these steps? Matches to same position in PostProcOrder, above.
+SavePostProcessedPreviewImgs = 	newArray(true, true, true);		// Save a preview image for these steps? Matches to same position in PostProcOrder, above.
+
 
 // Remove Duplicates parameters
 RemoveDuplicatesParams = 	"uncertainty_xy";
@@ -145,10 +158,11 @@ FilteringParams = 		"intensity > 500 & intensity < 5000 & sigma > 50 & sigma < 2
 			
 // Drift Correction parameters
 DriftCorrParams[0] = 		"5";					// magnification
-DriftCorrParams[1] = 		"Cross correlation";		// type of correction
+DriftCorrParams[1] = 		"Cross correlation";	// type of correction
 DriftCorrParams[2] = 		"false";				// save file to path
 DriftCorrParams[3] = 		"5";					// steps/bins
 DriftCorrParams[4] = 		"false";				// show correlation plot (this isn't the drift plot)
+SaveDriftPlot = 			true;					// Save the drift-correction diagram?
 
 // Merging parameters
 MergingParams[0] = 		"0.1";				// z-coordinate weight
@@ -156,53 +170,45 @@ MergingParams[1] = 		"25";					// off-frames (mergeable events can be separated 
 MergingParams[2] = 		"50";				// search radius (mergeable events can be this far away from initial event)
 MergingParams[3] = 		"0";					// maximum number of consecutive frames such that a repeating event is still considered a single molecule.
 
-// DATA TABLES & PREVIEW IMAGES
-// set to true or false to save a table at each matching step in the PP chain given above.
-// e.g. if you have three post-proc steps, you need three t/f statements. If you have two pp steps you need two tf statements!
-
-SavePostProcessedTables  =		newArray(true, true, true);		// Save a data table for these steps? Matches to same position in PostProcOrder.
-SavePostProcessedPreviewImgs = 	newArray(true, true, true);		// Save a preview image for these steps? Matches to same position in PostProcOrder.
-
 // Other data table and preview options
-SaveTable_Allevents = 		true;				// The table of all identified events (before post-processing is performed) Important! You must save this if you want to use the reprocessor batch script in the future!
+SaveTable_Allevents = 		true;				// The table of all identified events (before any post-processing is performed) It's a good idea to save this if you plan to do any re-processing of the data later!
 SavePreview_Allevents = 	true;				// Save an image of the initial detection, before any post-processing steps?
 SaveTableForBayes = 		false;				// Save a table suitable for Bayesian Clustering Analysis (x,y,uncertainty cols only)
-SaveDriftPlot = 			true;				// Save the drift-correction diagram?
 
-// Naming of the output tables -- if the step is performed, these abbreviations will be appended in the file name.
-// The order in the filename will reflect the order that you specified in the post-processing chain.
-Suffix_AllEvents = 		"";
-Suffix_Filtered = 		"Fil";
+// Naming of the output tables -- if the post-processing step is performed, its matching suffix will be appended in the file name.
+// The order in the filename will reflect the order that you specified in the post-processing chain, given earlier.
+Suffix_AllEvents = 			"";
+Suffix_Filtered = 			"Fil";
 Suffix_RemoveDuplicates = 	"RemDup";
 Suffix_Merging = 			"Mrg";
 Suffix_DriftCorrection = 	"DriCor";
-Suffix_ForBayes = 		"_Bayes";
+Suffix_ForBayes = 			"_Bayes";
 
 // Exported data table format
-SaveTable_Format = 		"CSV (comma separated)"		// Other options: "XLS (tab separated)" , "XML" , "JSON" , "YAML" , "Google Protocol Buffer" , "Tagged spot file"
-OutputFileExt = 			".csv";				// File extension of the output data tables
+SaveTable_Format = 			"CSV (comma separated)"		// Other options must be given as: "XLS (tab separated)" , "XML" , "JSON" , "YAML" , "Google Protocol Buffer" , "Tagged spot file"
+OutputFileExt = 			".csv";						// File extension of the output data tables
 
 // Columns to include when exporting a data table (excluding the final Bayes table)
 // For excellent and sensible reasons, these true/false values need to be in quotes ("")...
 Save_Protocol =			"true";
 Save_Col_ID =			"true";
-Save_Col_Frame =			"true"; 
+Save_Col_Frame =		"true"; 
 Save_Col_x_Coord =		"true";
 Save_Col_y_Coord =		"true";
-Save_Col_Sigma =			"true";
-Save_Col_Intensity =		"true"; 
-Save_Col_Offset =			"true";
-Save_Col_Bkgstd =			"true";
-Save_Col_Uncertainty =		"true";
-Save_Col_Detections =		"true";				// available if doing merging
-Save_Col_Chi2 =			"false";				// available if doing least squares fitting
+Save_Col_Sigma =		"true";
+Save_Col_Intensity =	"true"; 
+Save_Col_Offset =		"true";
+Save_Col_Bkgstd =		"true";
+Save_Col_Uncertainty =	"true";
+Save_Col_Detections =	"true";				// available if doing merging
+Save_Col_Chi2 =			"false";			// available if doing least squares fitting
 
 //Image rendering - applied to post-processing preview images only
-RenderingParams[0] = 		"0.0"; 				//imleft
-RenderingParams[1] = 		"0.0"; 				//imtop
+RenderingParams[0] = 		"0.0"; 					//imleft
+RenderingParams[1] = 		"0.0"; 					//imtop
 RenderingParams[2] = 		"256.0"; 				//imwidth, size in pixels of raw input images
 RenderingParams[3] = 		"256.0"; 				//imheight
-RenderingParams[4] = 		"Normalized Gaussian";		// Render style
+RenderingParams[4] = 		"Normalized Gaussian";	//Render style
 RenderingParams[5] = 		"10.0"; 				//Magnification
 RenderingParams[6] = 		"false"; 				//dxforce
 RenderingParams[7] = 		"20.0"; 				//dx
@@ -217,14 +223,15 @@ RenderingParams[10] = 		"false"; 				//dzforce
  (Do no edit below this line. All useful variables are above this line)
  *========================================================================================================================
  */
-current_version_script = "1.03";
+current_version_script = "1.04";
+ReprocessingExistingData = false;
 
 if ((PostProcOrder.length ! = SavePostProcessedTables.length) || (PostProcOrder.length ! = SavePostProcessedPreviewImgs.length) || (SavePostProcessedTables.length ! = SavePostProcessedPreviewImgs.length)) {
 	ProcErrorMessage= "--------------------------------------------------------------------------------------------\n" + 
 		      "   Error! \n" + 
 		      "--------------------------------------------------------------------------------------------\n\n" + 
 		      "   Please check your macro settings: \n" + 
-		      "   These variables need to have the same number of values: \n\n" + 
+		      "   These variables need to ALL have the same number of values: \n\n" + 
 		      "       " + PostProcOrder.length + " values for PostProcOrder\n" + 
 		      "       " + SavePostProcessedTables.length + " values for SavePostProcessedTables\n" + 
 		      "       " + SavePostProcessedPreviewImgs.length + " values for SavePostProcessedPreviewImgs\n" + 
@@ -238,21 +245,26 @@ if ((PostProcOrder.length ! = SavePostProcessedTables.length) || (PostProcOrder.
  
 //===== Gather info, set up folder ======
 
-InputFolder = getDirectory("Choose directory where your acquisition stacks are stored");
+InputFolder = getDirectory("Choose directory where your input files are stored");
 
 var AllFilesInDir;
 AllFilesInDir= getFileList(InputFolder);
 
-var numberOfImages = 0;
-numberOfImages = countImages(InputFileExt);
+var numberOfInputFiles = 0;
+numberOfInputFiles = countInputFiles(InputFileExt);
 
-if (numberOfImages > 0) {
+if (numberOfInputFiles > 0) {
 
-	var ListInputImages;
-	ListInputImages = getImagesContaining(InputFileExt);
+	var ListInputFiles;
+	ListInputFiles = getImagesContaining(InputFileExt);
+	numberOfInputFiles = ListInputFiles.length; // update the number of files now that we've (possibly) excluded some from consideration
 
 	var SaveFileNames;
 	SaveFileNames = cleanFileNames(InputFileExt);
+	
+	if(InputFileExt == ".csv" || InputFileExt == ".xls" || InputFileExt == ".xml" || InputFileExt == ".yaml" || InputFileExt == ".json" || InputFileExt == ".tsf" ) {
+		ReprocessingExistingData = true;
+	}
 
 	// Housekeeping - create the output folder
 	OutputFolderUID = "";	
@@ -300,10 +312,10 @@ print(f1,"----------------------------------------------------------------------
 print(f1,"     ThunderSTORM Batch Processor \t (DW ver-" + current_version_script + ")\n");
 print(f1,"--------------------------------------------------------------------------------------\n");
 print(f1,"\n");
-if (numberOfImages==1) {
-	print(f1,"\t" + TimeStamp() + "\tProcessing "+ numberOfImages + " image.\n");
+if (numberOfInputFiles==1) {
+	print(f1,"\t" + TimeStamp() + "\tProcessing "+ numberOfInputFiles + " image.\n");
 } else {
-	print(f1,"\t" + TimeStamp() + "\tProcessing "+ numberOfImages + " images.\n");
+	print(f1,"\t" + TimeStamp() + "\tProcessing "+ numberOfInputFiles + " images.\n");
 }
 print(f1,"\n");
 print(f1," Source:\t" + InputFolder  + "\n");
@@ -345,92 +357,103 @@ if (CameraParams[4] != "auto") {
 
 //===== Start of processing loop ======
 
-for(i = 0; i < ListInputImages.length; i++) {
+for(i = 0; i < ListInputFiles.length; i++) {
 
 	StopWatchA = getTime(); // Start the processing timer
 
-	print(f1, " [" + i+1 + "/" + numberOfImages + "]\t" + SaveFileNames[i] + "\n");
-	print(f1,"\tLoading... ");
-	run("Bio-Formats Importer", "open='" + InputFolder+ListInputImages[i] + "' color_mode=Default view=[Standard ImageJ] stack_order=Default virtual");
-	print(f1," done. \n");
+	print(f1, " [" + i+1 + "/" + numberOfInputFiles + "]\t" + SaveFileNames[i] + "\n");
 
-	if ((CameraParams[1] == "auto") | (CameraParams[2] == "auto") | (CameraParams[3] == "auto") | (CameraParams[4] == "auto") ){
-		print(f1,"\tUsing metadata to set remaining camera parameters:\n");
+	if (ReprocessingExistingData) {
 
-		CameraParamsStringAuto = CameraParamsStringUser;
-
-		if (CameraParams[1] == "auto") {
-			// Reapply camera settings using the pixel size from metadata
-			MyCameraPixelSize = floor(1000000 * GetMetaDataValue(MetaDataWord_PixelSize))/1000;	// ND2 stores this as um/px but ThunderSTORM needs nm/px :)
-			CameraParamsStringAuto = CameraParamsStringAuto + " pixelsize="+MyCameraPixelSize;
-			print(f1,"\tPixel Size = "+MyCameraPixelSize+" nm/px");
-		}
-
-		if (CameraParams[2] == "auto") {
-			// Reapply camera settings using the image gain from metadata
-			MyCameraGain = GetMetaDataValue(MetaDataWord_Gain);	
-			CameraParamsStringAuto = CameraParamsStringAuto + " isemgain=true gainem="+MyCameraGain;
-			print(f1,"\tGain = "+MyCameraGain);
-		}
-	
-		if ((CameraParams[4] == "auto") & (CameraParams[3] == "auto")) {
+		print(f1,"\tLoading data table for reprocessing... ");
+		run("Import results", "filepath=[" + InputFolder+ListInputFiles[i] + "] fileformat=[CSV (comma separated)] append=false startingframe=1 rawimagestack= livepreview=false");	
+		print(f1," done. \n");
 		
-			// Get metadata
-			ReadoutSpeed = GetMetaDataValue(MetaDataWord_Readout);
-			PreAmpConvGain = GetMetaDataValue(MetaDataWord_PreAmp);
-				
-			if (ReadoutSpeed == 17) {
-				if (PreAmpConvGain == " Gain 3") {			// Readout = 17 Mhz, Preamp = Gain 3
-					MyCameraOffset = CameraPerf[0];		//Noise
-					MyCameraSensitivity  = CameraPerf[1];	//Sensitivity
-				}
-				if (PreAmpConvGain == " Gain 2") {			// Readout = 17 Mhz, Preamp = Gain 2
-					MyCameraOffset = CameraPerf[2];		//Noise
-					MyCameraSensitivity = CameraPerf[3];	//Sensitivity
-				}
-				if (PreAmpConvGain == " Gain 1") {			// Readout = 17 Mhz, Preamp = Gain 1
-					MyCameraOffset = CameraPerf[4];		//Noise
-					MyCameraSensitivity = CameraPerf[5];	//Sensitivity
-				}
-			}
-			if (ReadoutSpeed == 10) {
-				if (PreAmpConvGain == " Gain 3") {			// Readout = 17 Mhz, Preamp = Gain 3
-					MyCameraOffset = CameraPerf[6];		//Noise
-					MyCameraSensitivity  = CameraPerf[7];	//Sensitivity
-				}
-				if (PreAmpConvGain == " Gain 2") {			// Readout = 17 Mhz, Preamp = Gain 2
-					MyCameraOffset = CameraPerf[8];		//Noise
-					MyCameraSensitivity = CameraPerf[9];	//Sensitivity
-				}
-				if (PreAmpConvGain == " Gain 1") {			// Readout = 17 Mhz, Preamp = Gain 1
-					MyCameraOffset = CameraPerf[10];		//Noise
-					MyCameraSensitivity = CameraPerf[11];	//Sensitivity
-				}
-			}
-			CameraParamsStringAuto = CameraParamsStringAuto + " offset="+MyCameraOffset +" photons2adu="+MyCameraSensitivity;	
-			print(f1,"\tNoise = "+MyCameraOffset +"\tSensitivity = "+MyCameraSensitivity);
-		}
-		print(f1,".\n");
-		run("Camera setup", CameraParamsStringAuto);
-		// print(f1,"\tCamera Settings: "+CameraParamsStringAuto+"\n");
-	}
-
-	// Initial detection
-	print(f1,"\tIdentifying events... ");
-	DoMainProcessing();
-	if (SaveTable_Allevents) {
-		filenameOut = OutputFolder+SaveFileNames[i]+Suffix_AllEvents+OutputFileExt;
-		SaveProcessedTable(filenameOut);
-	}
-	if (SavePreview_Allevents) {
-		filenameOutPreview = OutputFolder+SaveFileNames[i]+Suffix_AllEvents;
-		SavePreviewImage(filenameOutPreview);
-	}
-	print(f1," done.\n");
-	// end initial detection block
-
-	// wait(2000);  // this might be necessary if your detection finishes too soon (e.g. on test images with only a few frames)
+	} else {
 	
+		print(f1,"\tLoading raw image data for localisation processing... ");
+		run("Bio-Formats Importer", "open='" + InputFolder+ListInputFiles[i] + "' color_mode=Default view=[Standard ImageJ] stack_order=Default virtual");
+		print(f1," done. \n");
+		
+		if ((CameraParams[1] == "auto") | (CameraParams[2] == "auto") | (CameraParams[3] == "auto") | (CameraParams[4] == "auto") ){
+			print(f1,"\tUsing metadata to set remaining camera parameters:\n");
+
+			CameraParamsStringAuto = CameraParamsStringUser;
+
+			if (CameraParams[1] == "auto") {
+				// Reapply camera settings using the pixel size from metadata
+				MyCameraPixelSize = floor(1000000 * GetMetaDataValue(MetaDataWord_PixelSize))/1000;	// ND2 stores this as um/px but ThunderSTORM needs nm/px :)
+				CameraParamsStringAuto = CameraParamsStringAuto + " pixelsize="+MyCameraPixelSize;
+				print(f1,"\tPixel Size = "+MyCameraPixelSize+" nm/px");
+			}
+	
+			if (CameraParams[2] == "auto") {
+				// Reapply camera settings using the image gain from metadata
+				MyCameraGain = GetMetaDataValue(MetaDataWord_Gain);	
+				CameraParamsStringAuto = CameraParamsStringAuto + " isemgain=true gainem="+MyCameraGain;
+				print(f1,"\tGain = "+MyCameraGain);
+			}
+	
+			if ((CameraParams[4] == "auto") & (CameraParams[3] == "auto")) {
+			
+				// Get metadata
+				ReadoutSpeed = GetMetaDataValue(MetaDataWord_Readout);
+				PreAmpConvGain = GetMetaDataValue(MetaDataWord_PreAmp);
+					
+				if (ReadoutSpeed == 17) {
+					if (PreAmpConvGain == " Gain 3") {			// Readout = 17 Mhz, Preamp = Gain 3
+						MyCameraOffset = CameraPerf[0];		//Noise
+						MyCameraSensitivity  = CameraPerf[1];	//Sensitivity
+					}
+					if (PreAmpConvGain == " Gain 2") {			// Readout = 17 Mhz, Preamp = Gain 2
+						MyCameraOffset = CameraPerf[2];		//Noise
+						MyCameraSensitivity = CameraPerf[3];	//Sensitivity
+					}
+					if (PreAmpConvGain == " Gain 1") {			// Readout = 17 Mhz, Preamp = Gain 1
+						MyCameraOffset = CameraPerf[4];		//Noise
+						MyCameraSensitivity = CameraPerf[5];	//Sensitivity
+					}
+				}
+				if (ReadoutSpeed == 10) {
+					if (PreAmpConvGain == " Gain 3") {			// Readout = 17 Mhz, Preamp = Gain 3
+						MyCameraOffset = CameraPerf[6];		//Noise
+						MyCameraSensitivity  = CameraPerf[7];	//Sensitivity
+					}
+					if (PreAmpConvGain == " Gain 2") {			// Readout = 17 Mhz, Preamp = Gain 2
+						MyCameraOffset = CameraPerf[8];		//Noise
+						MyCameraSensitivity = CameraPerf[9];	//Sensitivity
+					}
+					if (PreAmpConvGain == " Gain 1") {			// Readout = 17 Mhz, Preamp = Gain 1
+						MyCameraOffset = CameraPerf[10];		//Noise
+						MyCameraSensitivity = CameraPerf[11];	//Sensitivity
+					}
+				}
+				CameraParamsStringAuto = CameraParamsStringAuto + " offset="+MyCameraOffset +" photons2adu="+MyCameraSensitivity;	
+				print(f1,"\tNoise = "+MyCameraOffset +"\tSensitivity = "+MyCameraSensitivity);
+			}
+			print(f1,".\n");
+			run("Camera setup", CameraParamsStringAuto);
+			// print(f1,"\tCamera Settings: "+CameraParamsStringAuto+"\n");
+		}
+
+		// Initial detection
+		print(f1,"\tIdentifying events... ");
+		DoMainProcessing();
+		if (SaveTable_Allevents) {
+			filenameOut = OutputFolder+SaveFileNames[i]+Suffix_AllEvents+OutputFileExt;
+			SaveProcessedTable(filenameOut);
+		}
+		if (SavePreview_Allevents) {
+			filenameOutPreview = OutputFolder+SaveFileNames[i]+Suffix_AllEvents;
+			SavePreviewImage(filenameOutPreview);
+		}
+		print(f1," done.\n");
+		// end initial detection block
+
+		// wait(2000);  // this might be necessary if your detection finishes too soon (e.g. on test images with only a few frames)
+		
+	}
+
 // ==== Post Processing ====
 	
 	filenameOutPostProcessing = OutputFolder+SaveFileNames[i];
@@ -613,8 +636,8 @@ Dialog.show();
 
 
 
-// countImages - Count the number of files in a folder containing 'text'
-function countImages(text) {
+// countInputFiles - Count the number of files in a folder containing 'text'
+function countInputFiles(text) {
 	count = 0;
 	for(i=0; i<AllFilesInDir.length; i++) {
 		if (endsWith(AllFilesInDir[i], text ) == 1 )
@@ -625,24 +648,43 @@ function countImages(text) {
 
 
 // getImagesContaining - List the file names containing 'text', initialised by counting (above)
+// Filename also can't contain the existing 'extension phrases' to avoid loading already-processed files.
 function getImagesContaining(text) {
-	result = newArray(numberOfImages);
+	result = newArray(numberOfInputFiles);
+	badnames = newArray(Suffix_Filtered, Suffix_RemoveDuplicates, Suffix_Merging, Suffix_DriftCorrection, Suffix_ForBayes);
 	index = 0;
 	for (i=0; i<AllFilesInDir.length; i++) {
+	
+		// First test -- does it have the right file extension?
 		if (endsWith(AllFilesInDir[i], text) ==1) {
-			result[index] = AllFilesInDir[i];
-			index++;
+
+			// Second test -- does it contain any of the words that might indicate this file is an already-processed file?
+			badvibes=0;
+			for (z=0; z<badnames.length; z++) {
+				if (indexOf(AllFilesInDir[i], badnames[z]) >= 0) {
+					badvibes++;
+				}
+			}
+			
+			// 
+			if (badvibes == 0) {
+				result[index] = AllFilesInDir[i];
+				index++;
+			}
+			
 		}
 	}
-	return result;
+	//trim the zeros
+	finalresult = Array.slice(result,0,index);
+	return finalresult;
 }
 
 
 // cleanFileNames - Strip baggage from file names
 function cleanFileNames(text) {
-	result = newArray(ListInputImages.length);
+	result = newArray(ListInputFiles.length);
 	for(i=0; i<result.length; i++) {
-		result[i] = replace(ListInputImages[i], text, "");	 	// delete occurances of the main file extension
+		result[i] = replace(ListInputFiles[i], text, "");	 	// delete occurances of the main file extension
 		result[i] = replace(result[i], ".nd2", ""); 			// scrub Nikon file extensions from the name
 		result[i] = replace(result[i], ".lif", "");				// scrub Leica file extensions from the name
 	}
@@ -827,25 +869,25 @@ function DoMainProcessing() {
 }
 
 
-// Filter events based on criteria in filter string paramter in AnalysisParams
+// Filter events based on criteria in filter string paramter in FilteringParams
 function DoFiltering() {
 	run("Show results table", "action=filter formula=[" + FilteringParams + "]");
 }
 
 
-// DoRemoveDuplicates - Apply event merging on data table using paramters in AnalysisParams
+// DoRemoveDuplicates - Apply event merging on data table using paramters in RemoveDuplicatesParams
 function DoRemoveDuplicates() {
 	run("Show results table", "action=duplicates distformula=[" + RemoveDuplicatesParams + "]");
 }
 
 
-// DoDriftCorrection - Correct data table for lateral drift during acquisition using paramters in AnalysisParams
+// DoDriftCorrection - Correct data table for lateral drift during acquisition using paramters in DriftCorrParams
 function DoDriftCorrection() {
 	run("Show results table", "action=drift magnification=" + DriftCorrParams[0] + " method=[" + DriftCorrParams[1] + "]" + " save=" + DriftCorrParams[2] + " path=" + DriftCorrParams[5] + " steps=" + DriftCorrParams[3] + " showcorrelations=" + DriftCorrParams[4] );
 }
 
 
-// DoMerging - Apply event merging on data table using paramters in AnalysisParams
+// DoMerging - Apply event merging on data table using paramters in MergingParams
 function DoMerging() {
 	run("Show results table", "action=merge zcoordweight=" + MergingParams[0] + " offframes=" + MergingParams[1] + " dist=" + MergingParams[2] + " framespermolecule=" + MergingParams[3] );
 }

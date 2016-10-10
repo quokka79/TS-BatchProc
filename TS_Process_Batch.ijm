@@ -40,7 +40,7 @@ CameraPerf = newArray(12);
  *========================================================================================================================
  */
 
-InputFileExt = 				".nd2";			// File extension of the input data files. To reprocess data from a previous batch-proc, set this to the file extension that you exported the data.
+InputFileExt = 				".csv";			// File extension of the input data files. To reprocess data from a previous batch-proc, set this to the file extension that you exported the data.
 OutputFolderName = 			"Proc";			// Name of folder that will be created to hold output data tables etc.
 OutputFolderAppendUID = 	"datestamp";	// Will add a unique ID to the end of the folder name given above (e.g. to avoid overwriting existing data). Use either "random" or "datestamp".
 OrganiseOutputFiles = 		false;			// Protocols, preview images, and drift plots will be stored in their own folders. This can make the output a bit neater and easier to manage but see note below...
@@ -137,14 +137,14 @@ CameraPerf[11] =		"15.06";			// PreAmp Gain 1 Sensitivity
 //	 	Filter		DensityFilter		RemoveDuplicates		Merging		DriftCorrection		ZStageOffset
 // If you don't want to do a particular type of post-processing simply don't include it!
 
-PostProcOrder = 	newArray("Filter", "DriftCorrection", "Merging"); 	
+PostProcOrder = 	newArray("Filter", "Merging",  "DriftCorrection"); 	
 // !IMPORTANT! When changing this, make sure you add/remove a matching true/false statements for
 // saving tables (SavePostProcessedTables) and preview-images (SavePostProcessedPreviewImgs), lines below.
 // e.g. if you have three post-proc steps, then you need three true/false statements. If you have two pp steps you need two such statements
 
 // DATA TABLES & PREVIEW IMAGES
-SavePostProcessedTables  =		newArray(true, true, true);		// Save a data table for these steps? Matches to same position in PostProcOrder, above.
-SavePostProcessedPreviewImgs = 	newArray(true, true, true);		// Save a preview image for these steps? Matches to same position in PostProcOrder, above.
+SavePostProcessedTables  =		newArray(false, true, true);		// Save a data table for these steps? Matches to same position in PostProcOrder, above.
+SavePostProcessedPreviewImgs = 	newArray(false, true, true);		// Save a preview image for these steps? Matches to same position in PostProcOrder, above.
 
 
 // Remove Duplicates parameters
@@ -224,7 +224,7 @@ RenderingParams[10] = 		"false"; 				//dzforce
  *========================================================================================================================
  */
 current_version_script = "1.04";
-ReprocessingExistingData = false;
+ReprocessingExistingData = false; // This will change when the script finds processed data.
 
 if ((PostProcOrder.length ! = SavePostProcessedTables.length) || (PostProcOrder.length ! = SavePostProcessedPreviewImgs.length) || (SavePostProcessedTables.length ! = SavePostProcessedPreviewImgs.length)) {
 	ProcErrorMessage= "--------------------------------------------------------------------------------------------\n" + 

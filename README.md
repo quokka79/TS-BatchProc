@@ -1,8 +1,5 @@
 # TS-BatchProc
-
-========================================================================================================================
- 		Dave's Attempt at a Batch Processor Macro for ThunderSTORM
-========================================================================================================================
+# Dave's Attempt at a Batch Processor Macro for ThunderSTORM #
 
 Tested with:
 - ImageJ 1.49s and 1.50g
@@ -10,9 +7,7 @@ Tested with:
 - Fiji Life-Line version, 2013 July 15 (from http://fiji.sc/Downloads )
 - ThunderSTORM dev-2015-10-03-b1
 
-========================================================================================================================
-TS_Process_Batch.ijm
-========================================================================================================================
+## TS_Process_Batch.ijm  ##
 
 This version does: 			
 	- ND2, TIF, LIF, CZS localisation and post-processing -- if you can open it with BioFormats then you can use it with
